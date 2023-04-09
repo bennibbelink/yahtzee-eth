@@ -1,0 +1,2 @@
+vyper
+git+https://github.com/kaimast/pytest-vyper
