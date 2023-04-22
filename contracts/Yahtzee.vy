@@ -177,17 +177,17 @@ def has_winner() -> bool:
     return self.player_scores[14][0] >= 0 and self.player_scores[14][1] >= 0
 
 @external
-@view
+# @view
 def turn_dump():
     log Turn(players[self.next_player])
 
 @external
-@view
+# @view
 def dice_dump():
     log DiceState(self.dice, self.rollsLeft)
 
 @external
-@view
+# @view
 def score_dump():
     log ScoreState(players, self.player_scores)
 

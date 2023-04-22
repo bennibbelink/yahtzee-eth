@@ -1,6 +1,7 @@
 import pytest
 from eth_tester.exceptions import TransactionFailed
 
+
 @pytest.fixture
 def yahtzee_contract(w3, get_vyper_contract):
     with open("yahtzee.vy", encoding='utf-8') as infile:
@@ -49,6 +50,9 @@ def test_bank_roll(w3, yahtzee_contract):
     with pytest.raises(TransactionFailed):
         # its not player 2's turn
         yahtzee_contract.bank_roll(0, transact={"from": player2})
+    with pytest.raises(TransactionFailed):
+        # player 1 must roll at least once
+        yahtzee_contract.bank_roll(0, transact={"from": player1})
 
     yahtzee_contract.roll_dice(True, True, True, True, True, transact={"from": player1})
     # only 0-5, and 7-13 are valid categories
