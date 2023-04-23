@@ -158,10 +158,6 @@ def bank_roll(category: uint32):
         log ScoreState(self.players, self.player_scores)
 
 @internal
-def check_yahtzee():
-    return self.dice[0]==self.dice[1] and self.dice[0]==self.dice[2] and self.dice[0]==self.dice[3] and self.dice[0]==self.dice[4]
-
-@internal
 def check_bonus():
     complete: bool = True
     sum: int8 = 0
@@ -268,6 +264,10 @@ def check_lg_straight() -> bool:
         if i not in self.dice: 
             return False
     return True
+
+@internal
+def check_yahtzee() -> bool:
+    return self.dice[0]==self.dice[1] and self.dice[0]==self.dice[2] and self.dice[0]==self.dice[3] and self.dice[0]==self.dice[4]
 
 ##### THIS IS TEMPORARY #####
 @internal
