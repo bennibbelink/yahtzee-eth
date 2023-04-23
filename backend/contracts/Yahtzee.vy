@@ -6,7 +6,7 @@ event GameOver:
     losing_score: int8
 
 event DiceState:
-    dice: int8[5]
+    dice: uint8[5]
     rollsLeft: uint8
 
 event ScoreState:
@@ -16,34 +16,45 @@ event ScoreState:
 event Turn:
     turn: address
 
-players: immutable(address[2])
+players: address[2]
 next_player: uint8
 rollsLeft: uint8
-dice: int8[5]
+dice: uint8[5]
 player_scores: int8[2][15]
 
 
-
 @external
-def __init__(player1: address, player2: address):
-    self.next_player = 0
-    players = [player1, player2]
+def __init__(): 
+    self.reset_game()
+
+@internal
+def reset_game():
+    self.players = empty(address[2])
     for i in range(15):
         self.player_scores[i][0] = -1
         self.player_scores[i][1] = -1
     self.rollsLeft = 3
     for i in range(5):
         self.dice[i] = 1
-    log Turn(players[self.next_player])
-    log DiceState(self.dice, self.rollsLeft)
-    log ScoreState(players, self.player_scores)
-
+    
+@external
+def join_game():
+    if self.players[0] == empty(address):
+        self.players[0] = msg.sender
+    elif self.players[1] == empty(address):
+        self.players[1] = msg.sender
+        self.next_player = self.generate_rand_number() % 2 # do this after joining so players can't see who goes first before joining
+        log Turn(self.players[self.next_player])
+        log DiceState(self.dice, self.rollsLeft)
+        log ScoreState(self.players, self.player_scores)
+    else:
+        raise "revert: game currently in progress, can't join right now"
 
 @external
 def roll_dice(one: bool, two: bool, three: bool, four: bool, five: bool):
     if self.has_winner():
         raise "revert: revert: the game is over"
-    if msg.sender != players[self.next_player]:
+    if msg.sender != self.players[self.next_player]:
         raise "revert: not your turn"
     if self.rollsLeft == 0:
         raise "revert: out of rolls"
@@ -53,15 +64,15 @@ def roll_dice(one: bool, two: bool, three: bool, four: bool, five: bool):
         raise "revert: you have to roll all five dice to start your turn"
     
     if one: 
-        self.dice[0] = self.generate_rand_number(self.dice[0])
+        self.dice[0] = self.generate_rand_number()
     if two: 
-        self.dice[1] = self.generate_rand_number(self.dice[1])
+        self.dice[1] = self.generate_rand_number()
     if three: 
-        self.dice[2] = self.generate_rand_number(self.dice[2])
+        self.dice[2] = self.generate_rand_number()
     if four: 
-        self.dice[3] = self.generate_rand_number(self.dice[3])
+        self.dice[3] = self.generate_rand_number()
     if five: 
-        self.dice[3] = self.generate_rand_number(self.dice[4])
+        self.dice[3] = self.generate_rand_number()
     
     self.rollsLeft -= 1
     log DiceState(self.dice, self.rollsLeft)
@@ -70,12 +81,12 @@ def roll_dice(one: bool, two: bool, three: bool, four: bool, five: bool):
 def bank_roll(category: uint32):
     if self.has_winner():
         raise "revert: the game is over"
-    if msg.sender != players[self.next_player]:
+    if msg.sender != self.players[self.next_player]:
         raise "revert: not your turn"
     if self.rollsLeft == 3:
         raise "revert: you haven't rolled"
     player: uint8 = 0
-    if msg.sender == players[0]: 
+    if msg.sender == self.players[0]: 
         player = 0
     else: 
         player = 1
@@ -118,7 +129,7 @@ def bank_roll(category: uint32):
             val = 50
     elif category == 13: # chance
         for d in self.dice:
-            val += d
+            val += convert(d, int8)
     elif category == 14: # total
         raise 'revert: can\'t bank the total, it is the sum of your categories'
     else:
@@ -131,18 +142,18 @@ def bank_roll(category: uint32):
     self.next_player = (self.next_player + 1) % 2
 
     if self.has_winner():
-        log ScoreState(players, self.player_scores)
+        log ScoreState(self.players, self.player_scores)
         winner: uint8 = 0
         loser: uint8 = 1
         if self.player_scores[14][1] > self.player_scores[14][0]:
             winner = 1
             loser = 0
-
-        log GameOver(players[winner], players[loser], self.player_scores[14][winner], self.player_scores[14][loser])
+        log GameOver(self.players[winner], self.players[loser], self.player_scores[14][winner], self.player_scores[14][loser])
+        self.reset_game()
     else:
         log DiceState(self.dice, self.rollsLeft)
-        log Turn(players[self.next_player])
-        log ScoreState(players, self.player_scores)
+        log Turn(self.players[self.next_player])
+        log ScoreState(self.players, self.player_scores)
 
 @internal
 def check_bonus():
@@ -173,13 +184,13 @@ def check_total():
 @internal
 def has_winner() -> bool:
     # the total score will be set when all other categories are full
-    # if both players have a total score then the game is over
+    # if both self.players have a total score then the game is over
     return self.player_scores[14][0] >= 0 and self.player_scores[14][1] >= 0
 
 @external
 # @view
 def turn_dump():
-    log Turn(players[self.next_player])
+    log Turn(self.players[self.next_player])
 
 @external
 # @view
@@ -189,14 +200,14 @@ def dice_dump():
 @external
 # @view
 def score_dump():
-    log ScoreState(players, self.player_scores)
+    log ScoreState(self.players, self.player_scores)
 
 @internal
 def top_numbers(num: int8) -> int8:
     sum: int8 = 0
     for d in self.dice:
-        if d == num: 
-            sum += d
+        if convert(d, int8) == num: 
+            sum += convert(d, int8)
     return sum
 
 @internal
@@ -205,7 +216,7 @@ def check_x_of_a_kind(x: int8) -> int8:
     have_x: bool = False
     sum: int8 = 0
     for d in self.dice:
-        sum += d
+        sum += convert(d, int8)
         map[d] += 1
         if map[d] >= x:
             have_x = True
@@ -220,13 +231,14 @@ def check_full_house() -> bool:
     num_a: uint8 = 0
     num_b: uint8 = 0
     for d in self.dice:
+        di: int8 = convert(d, int8)
         if a == -1:
-            a = d
+            a = di
             num_a += 1
         elif b == -1:
-            b = d
+            b = di
             num_b += 1
-        elif d != a and d != b:
+        elif di != a and di != b:
             return False
     return True
 
@@ -253,6 +265,6 @@ def check_lg_straight() -> bool:
 
 ##### THIS IS TEMPORARY #####
 @internal
-def generate_rand_number(temp: int8) -> int8:
-    return temp^3 % 6 + 1
+def generate_rand_number() -> uint8:
+    return 3 % 6 + 1
 

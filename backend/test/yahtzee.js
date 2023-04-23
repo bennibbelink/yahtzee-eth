@@ -2,12 +2,26 @@ const Yahtzee = artifacts.require("Yahtzee");
 const truffleAssert = require('truffle-assertions');
 contract("Yahtzee", (accounts) => {
     const admin = accounts[0];
-    const player1 = accounts[1];
-    const player2 = accounts[2];
+    let player1;
+    let player2;
     let contract;
+    let result;
 
     beforeEach(async () => {
-        contract = await Yahtzee.new(player1, player2, { from: admin });
+        contract = await Yahtzee.new({ from: admin });
+        result = await truffleAssert.createTransactionResult(contract, contract.transactionHash);
+        result = await contract.join_game({from: accounts[1]});
+        result = await contract.join_game({from: accounts[2]});
+        truffleAssert.eventEmitted(result, 'Turn', (args) => {
+            if (args.turn == accounts[1]) {
+                player1 = accounts[1];
+                player2 = accounts[2];
+            } else {
+                player1 = accounts[2];
+                player2 = accounts[1];
+            }
+            return true; // just to assert that this event occurs
+        })
     });
 
     afterEach(async () => {
@@ -15,7 +29,6 @@ contract("Yahtzee", (accounts) => {
     });
 
     it("test_initial_state", async () => {
-        let result = await truffleAssert.createTransactionResult(contract, contract.transactionHash);
         truffleAssert.eventEmitted(result, 'ScoreState', (ev) => {
             for (i = 0; i < 15; i++) {
                 if (ev.player_scores[i][0] != -1 || ev.player_scores[i][1] != -1) {
