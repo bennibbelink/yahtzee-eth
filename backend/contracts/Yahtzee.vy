@@ -39,6 +39,8 @@ def reset_game():
     
 @external
 def join_game():
+    if self.players[0] == msg.sender or self.players[1] == msg.sender:
+        raise "You are already in the game"
     if self.players[0] == empty(address):
         self.players[0] = msg.sender
     elif self.players[1] == empty(address):
@@ -48,20 +50,20 @@ def join_game():
         log DiceState(self.dice, self.rollsLeft)
         log ScoreState(self.players, self.player_scores)
     else:
-        raise "revert: game currently in progress, can't join right now"
+        raise "Game currently in progress, can't join right now"
 
 @external
 def roll_dice(one: bool, two: bool, three: bool, four: bool, five: bool):
     if self.has_winner():
-        raise "revert: revert: the game is over"
+        raise "the game is over"
     if msg.sender != self.players[self.next_player]:
-        raise "revert: not your turn"
+        raise "not your turn"
     if self.rollsLeft == 0:
-        raise "revert: out of rolls"
+        raise "out of rolls"
     if not one and not two and not three and not four and not five:
-        raise "revert: you didn't select any dice to roll"
+        raise "you didn't select any dice to roll"
     if self.rollsLeft == 3 and (not one or not two or not three or not four or not five):
-        raise "revert: you have to roll all five dice to start your turn"
+        raise "you have to roll all five dice to start your turn"
     
     if one: 
         self.dice[0] = self.generate_rand_number()
@@ -80,11 +82,11 @@ def roll_dice(one: bool, two: bool, three: bool, four: bool, five: bool):
 @external
 def bank_roll(category: uint32):
     if self.has_winner():
-        raise "revert: the game is over"
+        raise "the game is over"
     if msg.sender != self.players[self.next_player]:
-        raise "revert: not your turn"
+        raise "not your turn"
     if self.rollsLeft == 3:
-        raise "revert: you haven't rolled"
+        raise "you haven't rolled"
     player: uint8 = 0
     if msg.sender == self.players[0]: 
         player = 0
@@ -92,10 +94,10 @@ def bank_roll(category: uint32):
         player = 1
     
     if category > 13 or category == 6:
-        raise "revert: not a valid category"
+        raise "not a valid category"
 
     if self.player_scores[category][player] > -1: 
-        raise "revert: you already banked that category"
+        raise "you already banked that category"
     val: int8 = 0
     if category == 0: # ones
         val = self.top_numbers(1) 
@@ -110,7 +112,7 @@ def bank_roll(category: uint32):
     elif category == 5: # sixes
         val = self.top_numbers(6)
     elif category == 6: # bonus
-        raise 'revert: can\'t bank the bonus, have to earn it'
+        raise 'can\'t bank the bonus, have to earn it'
     elif category == 7: # 3 of a kind
         val = self.check_x_of_a_kind(3)
     elif category == 8: # 4 of a kind
@@ -131,9 +133,9 @@ def bank_roll(category: uint32):
         for d in self.dice:
             val += convert(d, int8)
     elif category == 14: # total
-        raise 'revert: can\'t bank the total, it is the sum of your categories'
+        raise 'can\'t bank the total, it is the sum of your categories'
     else:
-        raise "revert: not a valid category"
+        raise "not a valid category"
 
     self.player_scores[category][player] = val
     self.check_bonus()

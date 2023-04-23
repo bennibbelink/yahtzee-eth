@@ -3,7 +3,7 @@ export interface State {
     player2: string
     rollsLeft: number
     dice: number[]
-    turn: number
-    player1_scores: (number|null)[]
-    player2_scores: (number|null)[]
+    turn: string
+    player1_scores: number[]
+    player2_scores: number[]
 }

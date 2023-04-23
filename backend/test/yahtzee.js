@@ -12,8 +12,8 @@ contract("Yahtzee", (accounts) => {
         result = await truffleAssert.createTransactionResult(contract, contract.transactionHash);
         result = await contract.join_game({from: accounts[1]});
         result = await contract.join_game({from: accounts[2]});
-        truffleAssert.eventEmitted(result, 'Turn', (args) => {
-            if (args.turn == accounts[1]) {
+        truffleAssert.eventEmitted(result, 'Turn', (ev) => {
+            if (ev.turn == accounts[1]) {
                 player1 = accounts[1];
                 player2 = accounts[2];
             } else {
@@ -37,13 +37,15 @@ contract("Yahtzee", (accounts) => {
             }
             return true;
         });
-        truffleAssert.eventEmitted(result, 'DiceState', (args) => {
-            return args.rollsLeft == 3;
-        })
-        truffleAssert.eventEmitted(result, 'Turn', (args) => {
+        truffleAssert.eventEmitted(result, 'DiceState', (ev) => {
+            return ev.rollsLeft == 3;
+        });
+        truffleAssert.eventEmitted(result, 'Turn', (ev) => {
             return true; // just to assert that this event occurs
         })
         truffleAssert.eventNotEmitted(result, 'GameOver');
+        truffleAssert.reverts(contract.join_game({from: player1}));
+        truffleAssert.reverts(contract.join_game({from: player2}));
     })
 
   it("test_roll_dice", async () => {

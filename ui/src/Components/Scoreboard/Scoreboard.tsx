@@ -3,10 +3,12 @@ import { ScoreboardWrapper } from './Scoreboard.styled';
 import {Column, Accessor} from 'react-table'
 import {State} from '../../Types'
 import Table from '../Table/Table'
+import Yahtzee from '../../Services/API';
 
 interface ScoreboardProps {
-   state: State
+   yahtzee: Yahtzee
    selected: boolean[]
+   addy: string
 }
 
 const Scoreboard: FC<ScoreboardProps> = (props: ScoreboardProps) => {
@@ -22,21 +24,21 @@ const Scoreboard: FC<ScoreboardProps> = (props: ScoreboardProps) => {
    for (let i = 0; i < categories.length; i++) {
       data[i] = {
          'category': categories[i], 
-         'player1':  props.state.player1_scores[i],
-         'player2': props.state.player2_scores[i]
+         'player1':  props.yahtzee.state.player1_scores[i],
+         'player2': props.yahtzee.state.player2_scores[i]
       }
    }
    let columns: Column[] = [
       { Header: 'Category', accessor: 'category' },
-      { Header: `Player 1: ${props.state.player1}`, accessor: 'player1' },
-      { Header: `Player 2: ${props.state.player2}`, accessor: 'player2' }
+      { Header: `Player 1: ${props.yahtzee.state.player1}`, accessor: 'player1' },
+      { Header: `Player 2: ${props.yahtzee.state.player2}`, accessor: 'player2' }
    ];
 
 
    return (
 
       <ScoreboardWrapper>
-         <Table columns={columns} data={data} selected={props.selected}/>
+         <Table yahtzee={props.yahtzee} columns={columns} data={data} selected={props.selected} addy={props.addy}/>
       </ScoreboardWrapper>
    );
 

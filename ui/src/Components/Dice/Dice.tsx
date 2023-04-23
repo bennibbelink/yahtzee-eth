@@ -1,4 +1,4 @@
-import React, { FC, useState } from 'react';
+import React, { FC } from 'react';
 import { DiceWrapper, DieWrapper } from './Dice.styled';
 import { State } from '../../Types';
 import {FontAwesomeIcon} from '@fortawesome/react-fontawesome'
@@ -17,7 +17,7 @@ const Dice: FC<DiceProps> = (props: DiceProps) => {
    return (
       <DiceWrapper>
          { props.state.dice.map((d, i) => (
-            <div onClick={() => onclick(i)}>
+            <div key={i} onClick={() => onclick(i)}>
                <Die value={d} selected={props.selected[i]}/>
             </div>
             ))
@@ -60,7 +60,7 @@ const Die: FC<DieProps> = (props: DieProps) => {
    }
    return (
       <DieWrapper>
-            <FontAwesomeIcon icon={icon} size={'2xl'} style={props.selected ? {'border': 'solid gray 2px'} : {}}></FontAwesomeIcon>
+            <FontAwesomeIcon icon={icon} size={'2xl'} style={props.selected ? {} : {'border': 'solid gray 2px'}}></FontAwesomeIcon>
       </DieWrapper>
    );
 }
