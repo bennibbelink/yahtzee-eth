@@ -118,16 +118,16 @@ def bank_roll(category: uint32):
     elif category == 8: # 4 of a kind
         val = self.check_x_of_a_kind(4)
     elif category == 9: # full house
-        if self.check_full_house(): 
+        if self.check_full_house() or (self.player_scores[12][player] >= 0 and self.check_yahtzee()): 
             val = 25
     elif category == 10: # SM straight
-        if self.check_sm_straight(): 
+        if self.check_sm_straight() or (self.player_scores[12][player] >= 0 and self.check_yahtzee()): 
             val = 30
     elif category == 11: # LG straight
-        if self.check_lg_straight(): 
+        if self.check_lg_straight() or (self.player_scores[12][player] >= 0 and self.check_yahtzee()): 
             val = 40
     elif category == 12: # yahtzee
-        if self.dice[0]==self.dice[1] and self.dice[0]==self.dice[2] and self.dice[0]==self.dice[3] and self.dice[0]==self.dice[4]:
+        if self.check_yahtzee():
             val = 50
     elif category == 13: # chance
         for d in self.dice:
@@ -156,6 +156,10 @@ def bank_roll(category: uint32):
         log DiceState(self.dice, self.rollsLeft)
         log Turn(self.players[self.next_player])
         log ScoreState(self.players, self.player_scores)
+
+@internal
+def check_yahtzee():
+    return self.dice[0]==self.dice[1] and self.dice[0]==self.dice[2] and self.dice[0]==self.dice[3] and self.dice[0]==self.dice[4]
 
 @internal
 def check_bonus():
