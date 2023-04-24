@@ -30,6 +30,7 @@ def __init__():
 @internal
 def reset_game():
     self.players = empty(address[2])
+    self.next_player = 2
     for i in range(15):
         self.player_scores[i][0] = -1
         self.player_scores[i][1] = -1
@@ -43,6 +44,9 @@ def join_game():
         raise "You are already in the game"
     if self.players[0] == empty(address):
         self.players[0] = msg.sender
+        log Turn(empty(address))
+        log DiceState(self.dice, self.rollsLeft)
+        log ScoreState(self.players, self.player_scores)
     elif self.players[1] == empty(address):
         self.players[1] = msg.sender
         self.next_player = self.generate_rand_number() % 2 # do this after joining so players can't see who goes first before joining
@@ -192,7 +196,10 @@ def has_winner() -> bool:
 @external
 # @view
 def turn_dump():
-    log Turn(self.players[self.next_player])
+    if self.next_player == 2: # the game hasn't started yet
+        log Turn(empty(address))
+    else:
+        log Turn(self.players[self.next_player])
 
 @external
 # @view
