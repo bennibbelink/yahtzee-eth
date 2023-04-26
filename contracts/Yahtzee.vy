@@ -81,7 +81,7 @@ def roll_dice(one: bool, two: bool, three: bool, four: bool, five: bool):
         raise "out of rolls"
     if not one and not two and not three and not four and not five:
         raise "you didn't select any dice to roll"
-    if self.rollsLeft == 3 and (not one and not two and not three and not four and not five):
+    if self.rollsLeft == 3 and (not one or not two or not three or not four or not five):
         raise "you have to roll all five dice to start your turn"
     self.generate_dice_roll(one, two, three, four, five)
     
@@ -174,7 +174,10 @@ def check_bonus():
             complete = False
             break
     if complete:
-        self.player_scores[6][self.next_player] = sum
+        if sum >= 63:
+            self.player_scores[6][self.next_player] = 35
+        else:
+            self.player_scores[6][self.next_player] = 0
 
 @internal
 def check_total():
@@ -222,39 +225,51 @@ def top_numbers(num: int8) -> int8:
     return sum
 
 @internal
-def check_x_of_a_kind(x: int8) -> int8:
-    map: int8[6] = empty(int8[6])
+def check_x_of_a_kind(x: uint8) -> int8:
+    map: uint8[6] = empty(uint8[6])
     have_x: bool = False
-    sum: int8 = 0
+    sum: uint8 = 0
     for d in self.dice:
-        sum += convert(d, int8)
+        sum += d
         map[d] += 1
         if map[d] >= x:
             have_x = True
     if have_x: 
-        return sum
+        return convert(sum, int8)
     return 0
 
 @internal
 def check_full_house() -> bool:
     a: int8 = -1
     b: int8 = -1
-    num_a: uint8 = 0
-    num_b: uint8 = 0
     for d in self.dice:
         di: int8 = convert(d, int8)
         if a == -1:
             a = di
-            num_a += 1
         elif b == -1:
             b = di
-            num_b += 1
         elif di != a and di != b:
             return False
     return True
 
 @internal
 def check_sm_straight() -> bool:
+    if 1 in self.dice:
+        for i in range(2,5):
+            if i not in self.dice:
+                return False
+    elif 6 in self.dice:
+        for i in range(3,6):
+            if i not in self.dice:
+                return False
+    else:
+        for i in range(2, 6):
+            if i not in self.dice:
+                return False
+    return True
+
+@internal
+def check_lg_straight() -> bool:
     if 1 in self.dice:
         for i in range(2,6):
             if i not in self.dice:
@@ -265,13 +280,6 @@ def check_sm_straight() -> bool:
                 return False
     else: 
         return False
-    return True
-
-@internal
-def check_lg_straight() -> bool:
-    for i in range(1,7):
-        if i not in self.dice:
-            return False
     return True
 
 @internal
