@@ -1,4 +1,9 @@
 # A simple implementation of Yahtzee in Vyper 
+
+interface DieOracle:
+    def gen_dice_roll(one: int8, two: int8, three: int8, four: int8, five: int8): nonpayable
+    def rec_dice_roll(sender_addr: address, one: int8, two: int8, three: int8, four: int8, five: int8): nonpayable
+
 event GameOver:
     winner: address
     loser: address
@@ -23,9 +28,16 @@ dice: uint8[5]
 player_scores: int8[2][15]
 
 
+# seed_to_roll: HashMap[bytes32, int8]
+# game_start_time: uint256
+oracle_contract: DieOracle
+
 @external
-def __init__(): 
+def __init__(oracle_ad: address): 
+    # self.game_start_time = block.timestamp
+    self.oracle_contract = DieOracle(oracle_ad)
     self.reset_game()
+
 
 @internal
 def reset_game():
@@ -40,6 +52,8 @@ def reset_game():
     
 @external
 def join_game():
+    # if block.timestamp > self.game_start_time + 7200: 
+    #     self.reset_game()
     if self.players[0] == msg.sender or self.players[1] == msg.sender:
         raise "You are already in the game"
     if self.players[0] == empty(address):
@@ -49,7 +63,8 @@ def join_game():
         log ScoreState(self.players, self.player_scores)
     elif self.players[1] == empty(address):
         self.players[1] = msg.sender
-        self.next_player = self.generate_rand_number() % 2 # do this after joining so players can't see who goes first before joining
+        seed: bytes32 = convert(block.timestamp, bytes32)
+        self.next_player = convert(convert(sha256(seed), uint256) % 2, uint8) # do this after joining so players can't see who goes first before joining
         log Turn(self.players[self.next_player])
         log DiceState(self.dice, self.rollsLeft)
         log ScoreState(self.players, self.player_scores)
@@ -66,23 +81,10 @@ def roll_dice(one: bool, two: bool, three: bool, four: bool, five: bool):
         raise "out of rolls"
     if not one and not two and not three and not four and not five:
         raise "you didn't select any dice to roll"
-    if self.rollsLeft == 3 and (not one or not two or not three or not four or not five):
+    if self.rollsLeft == 3 and (not one and not two and not three and not four and not five):
         raise "you have to roll all five dice to start your turn"
+    self.generate_dice_roll(one, two, three, four, five)
     
-    if one: 
-        self.dice[0] = self.generate_rand_number()
-    if two: 
-        self.dice[1] = self.generate_rand_number()
-    if three: 
-        self.dice[2] = self.generate_rand_number()
-    if four: 
-        self.dice[3] = self.generate_rand_number()
-    if five: 
-        self.dice[3] = self.generate_rand_number()
-    
-    self.rollsLeft -= 1
-    log DiceState(self.dice, self.rollsLeft)
-
 @external
 def bank_roll(category: uint32):
     if self.has_winner():
@@ -268,7 +270,7 @@ def check_sm_straight() -> bool:
 @internal
 def check_lg_straight() -> bool:
     for i in range(1,7):
-        if i not in self.dice: 
+        if i not in self.dice:
             return False
     return True
 
@@ -276,8 +278,25 @@ def check_lg_straight() -> bool:
 def check_yahtzee() -> bool:
     return self.dice[0]==self.dice[1] and self.dice[0]==self.dice[2] and self.dice[0]==self.dice[3] and self.dice[0]==self.dice[4]
 
-##### THIS IS TEMPORARY #####
+## COMMUNICATE WITH ORACLE FOR DICE ROLLS
 @internal
-def generate_rand_number() -> uint8:
-    return 3 % 6 + 1
+def generate_dice_roll(one: bool, two: bool, three: bool, four: bool, five: bool):
+    newd: int8[5] = [-1, -1, -1, -1, -1]
+    if not one:
+        newd[0] = convert(self.dice[0], int8)
+    if not two:
+        newd[1] = convert(self.dice[1], int8)
+    if not three:
+        newd[2] = convert(self.dice[2], int8)
+    if not four:
+        newd[3] = convert(self.dice[3], int8)
+    if not five:
+        newd[4] = convert(self.dice[4], int8)
+    self.oracle_contract.gen_dice_roll(newd[0], newd[1], newd[2], newd[3], newd[4])
+
+@external
+def recieve_dice_roll(one: int8, two: int8, three:int8, four: int8, five: int8):
+    self.dice = [convert(one, uint8), convert(two, uint8), convert(three, uint8), convert(four, uint8), convert(five, uint8)]
+    self.rollsLeft -= 1
+    log DiceState(self.dice, self.rollsLeft)
 
