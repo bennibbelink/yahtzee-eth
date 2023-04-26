@@ -25,6 +25,7 @@ function eventHandler(ev) {
             shallowDice[i] = getRandomRoll();
         }
     }
+    console.log('generating dice roll')
     sendDiceToOracle(yahtaddr, shallowDice);
 }
 
