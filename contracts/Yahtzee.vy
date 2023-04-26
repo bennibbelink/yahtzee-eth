@@ -1,9 +1,4 @@
 # A simple implementation of Yahtzee in Vyper 
-
-interface DieOracle:
-    def gen_dice_roll(one: int8, two: int8, three: int8, four: int8, five: int8): nonpayable
-    def rec_dice_roll(sender_addr: address, one: int8, two: int8, three: int8, four: int8, five: int8): nonpayable
-
 event GameOver:
     winner: address
     loser: address
@@ -30,12 +25,11 @@ player_scores: int8[2][15]
 
 # seed_to_roll: HashMap[bytes32, int8]
 # game_start_time: uint256
-oracle_contract: DieOracle
+
 
 @external
-def __init__(oracle_ad: address): 
+def __init__(): 
     # self.game_start_time = block.timestamp
-    self.oracle_contract = DieOracle(oracle_ad)
     self.reset_game()
 
 
@@ -83,7 +77,19 @@ def roll_dice(one: bool, two: bool, three: bool, four: bool, five: bool):
         raise "you didn't select any dice to roll"
     if self.rollsLeft == 3 and (not one and not two and not three and not four and not five):
         raise "you have to roll all five dice to start your turn"
-    self.generate_dice_roll(one, two, three, four, five)
+    
+    if one:
+        self.dice[0] = self.generate_roll(1)
+    if two:
+        self.dice[1] = self.generate_roll(2)
+    if three:
+        self.dice[2] = self.generate_roll(3)
+    if four:
+        self.dice[3] = self.generate_roll(4)
+    if five:
+        self.dice[4] = self.generate_roll(5)
+    self.rollsLeft = self.rollsLeft - 1
+    log DiceState(self.dice, self.rollsLeft)
     
 @external
 def bank_roll(category: uint32):
@@ -124,13 +130,13 @@ def bank_roll(category: uint32):
     elif category == 8: # 4 of a kind
         val = self.check_x_of_a_kind(4)
     elif category == 9: # full house
-        if self.check_full_house() or (self.player_scores[12][player] >= 0 and self.check_yahtzee()): 
+        if self.check_full_house():# or (self.player_scores[12][player] >= 0 and self.check_yahtzee() and self.player_scores[convert(self.dice[0] - 1, uint256)][player] >= 0): 
             val = 25
     elif category == 10: # SM straight
-        if self.check_sm_straight() or (self.player_scores[12][player] >= 0 and self.check_yahtzee()): 
+        if self.check_sm_straight():# or (self.player_scores[12][player] >= 0 and self.check_yahtzee() and self.player_scores[convert(self.dice[0] - 1, uint256)][player] >= 0): 
             val = 30
     elif category == 11: # LG straight
-        if self.check_lg_straight() or (self.player_scores[12][player] >= 0 and self.check_yahtzee()): 
+        if self.check_lg_straight():# or (self.player_scores[12][player] >= 0 and self.check_yahtzee() and self.player_scores[convert(self.dice[0] - 1, uint256)][player] >= 0): 
             val = 40
     elif category == 12: # yahtzee
         if self.check_yahtzee():
@@ -214,47 +220,57 @@ def score_dump():
     log ScoreState(self.players, self.player_scores)
 
 @internal
-def top_numbers(num: int8) -> int8:
-    sum: int8 = 0
+def top_numbers(num: uint8) -> int8:
+    sum: uint8 = 0
     for d in self.dice:
-        if convert(d, int8) == num: 
-            sum += convert(d, int8)
-    return sum
+        if d == num: 
+            sum += d
+    return convert(sum, int8)
 
 @internal
-def check_x_of_a_kind(x: int8) -> int8:
-    map: int8[6] = empty(int8[6])
+def check_x_of_a_kind(x: uint8) -> int8:
+    map: uint8[6] = empty(uint8[6])
     have_x: bool = False
-    sum: int8 = 0
+    sum: uint8 = 0
     for d in self.dice:
-        sum += convert(d, int8)
+        sum += d
         map[d] += 1
         if map[d] >= x:
             have_x = True
     if have_x: 
-        return sum
+        return convert(sum, int8)
     return 0
 
 @internal
 def check_full_house() -> bool:
     a: int8 = -1
     b: int8 = -1
-    num_a: uint8 = 0
-    num_b: uint8 = 0
     for d in self.dice:
         di: int8 = convert(d, int8)
         if a == -1:
             a = di
-            num_a += 1
         elif b == -1:
             b = di
-            num_b += 1
         elif di != a and di != b:
             return False
     return True
 
 @internal
 def check_sm_straight() -> bool:
+    if 1 in self.dice:
+        for i in range(2,5):
+            if i not in self.dice:
+                return False
+    elif 6 in self.dice:
+        for i in range(2,6):
+            if i not in self.dice:
+                return False
+    else: 
+        return False
+    return True
+
+@internal
+def check_lg_straight() -> bool:
     if 1 in self.dice:
         for i in range(2,6):
             if i not in self.dice:
@@ -268,35 +284,14 @@ def check_sm_straight() -> bool:
     return True
 
 @internal
-def check_lg_straight() -> bool:
-    for i in range(1,7):
-        if i not in self.dice:
-            return False
-    return True
-
-@internal
 def check_yahtzee() -> bool:
     return self.dice[0]==self.dice[1] and self.dice[0]==self.dice[2] and self.dice[0]==self.dice[3] and self.dice[0]==self.dice[4]
 
-## COMMUNICATE WITH ORACLE FOR DICE ROLLS
-@internal
-def generate_dice_roll(one: bool, two: bool, three: bool, four: bool, five: bool):
-    newd: int8[5] = [-1, -1, -1, -1, -1]
-    if not one:
-        newd[0] = convert(self.dice[0], int8)
-    if not two:
-        newd[1] = convert(self.dice[1], int8)
-    if not three:
-        newd[2] = convert(self.dice[2], int8)
-    if not four:
-        newd[3] = convert(self.dice[3], int8)
-    if not five:
-        newd[4] = convert(self.dice[4], int8)
-    self.oracle_contract.gen_dice_roll(newd[0], newd[1], newd[2], newd[3], newd[4])
-
-@external
-def recieve_dice_roll(one: int8, two: int8, three:int8, four: int8, five: int8):
-    self.dice = [convert(one, uint8), convert(two, uint8), convert(three, uint8), convert(four, uint8), convert(five, uint8)]
-    self.rollsLeft -= 1
-    log DiceState(self.dice, self.rollsLeft)
+@internal 
+def generate_roll(seed: int256) -> uint8:
+    x: int256 = convert(block.timestamp, int256)
+    y: int256 = x + seed
+    hash: bytes32 = sha256(convert(y, bytes32))
+    u8: uint256 = convert(hash, uint256) % 6 + 1
+    return convert(u8, uint8)
 
