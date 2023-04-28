@@ -21,10 +21,14 @@ event ScoreState:
 event Turn:
     turn: address
 
+event Selected:
+    selected: bool[5]
+
 players: address[2]
 next_player: uint8
 rollsLeft: uint8
 dice: uint8[5]
+selected: bool[5]
 player_scores: int8[2][15]
 
 
@@ -49,6 +53,7 @@ def reset_game():
     self.rollsLeft = 3
     for i in range(5):
         self.dice[i] = 1
+        self.selected[i] = True
     
 @external
 def join_game():
@@ -71,24 +76,28 @@ def join_game():
     else:
         raise "Game currently in progress, can't join right now"
 
+
 @external
-def roll_dice(one: bool, two: bool, three: bool, four: bool, five: bool):
-    if self.has_winner():
-        raise "the game is over"
+def toggle_select_die(ind: uint8):
+    if msg.sender != self.players[self.next_player]:
+        raise "not your turn"
+    self.selected[ind] = not self.selected[ind]
+    log Selected(self.selected)
+
+@external
+def roll_dice():
     if msg.sender != self.players[self.next_player]:
         raise "not your turn"
     if self.rollsLeft == 0:
         raise "out of rolls"
-    if not one and not two and not three and not four and not five:
+    if not self.selected[0] and not self.selected[1] and not self.selected[2] and not self.selected[3] and not self.selected[4]:
         raise "you didn't select any dice to roll"
-    if self.rollsLeft == 3 and (not one or not two or not three or not four or not five):
+    if self.rollsLeft == 3 and (not self.selected[0] and not self.selected[1] and not self.selected[2] and not self.selected[3] and not self.selected[4]):
         raise "you have to roll all five dice to start your turn"
-    self.generate_dice_roll(one, two, three, four, five)
-    
+    self.generate_dice_roll()
+
 @external
 def bank_roll(category: uint32):
-    if self.has_winner():
-        raise "the game is over"
     if msg.sender != self.players[self.next_player]:
         raise "not your turn"
     if self.rollsLeft == 3:
@@ -98,10 +107,8 @@ def bank_roll(category: uint32):
         player = 0
     else: 
         player = 1
-    
     if category > 13 or category == 6:
         raise "not a valid category"
-
     if self.player_scores[category][player] > -1: 
         raise "you already banked that category"
     val: int8 = 0
@@ -147,6 +154,10 @@ def bank_roll(category: uint32):
     self.check_bonus()
     self.check_total()
     self.rollsLeft = 3
+    for i in range(5):
+        self.selected[i] = True
+        self.dice[i] = 1
+    
     self.next_player = (self.next_player + 1) % 2
 
     if self.has_winner():
@@ -162,6 +173,7 @@ def bank_roll(category: uint32):
         log DiceState(self.dice, self.rollsLeft)
         log Turn(self.players[self.next_player])
         log ScoreState(self.players, self.player_scores)
+        log Selected(self.selected)
 
 @internal
 def check_bonus():
@@ -288,17 +300,17 @@ def check_yahtzee() -> bool:
 
 ## COMMUNICATE WITH ORACLE FOR DICE ROLLS
 @internal
-def generate_dice_roll(one: bool, two: bool, three: bool, four: bool, five: bool):
+def generate_dice_roll():
     newd: int8[5] = [-1, -1, -1, -1, -1]
-    if not one:
+    if not self.selected[0]:
         newd[0] = convert(self.dice[0], int8)
-    if not two:
+    if not self.selected[1]:
         newd[1] = convert(self.dice[1], int8)
-    if not three:
+    if not self.selected[2]:
         newd[2] = convert(self.dice[2], int8)
-    if not four:
+    if not self.selected[3]:
         newd[3] = convert(self.dice[3], int8)
-    if not five:
+    if not self.selected[4]:
         newd[4] = convert(self.dice[4], int8)
     self.oracle_contract.gen_dice_roll(newd[0], newd[1], newd[2], newd[3], newd[4])
 
