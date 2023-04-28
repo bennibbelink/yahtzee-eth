@@ -1,4 +1,9 @@
 # A simple implementation of Yahtzee in Vyper 
+
+interface DieOracle:
+    def gen_dice_roll(one: int8, two: int8, three: int8, four: int8, five: int8): nonpayable
+    def rec_dice_roll(sender_addr: address, one: int8, two: int8, three: int8, four: int8, five: int8): nonpayable
+
 event GameOver:
     winner: address
     loser: address
@@ -16,16 +21,27 @@ event ScoreState:
 event Turn:
     turn: address
 
+event Selected:
+    selected: bool[5]
+
 players: address[2]
 next_player: uint8
 rollsLeft: uint8
 dice: uint8[5]
+selected: bool[5]
 player_scores: int8[2][15]
 
 
+# seed_to_roll: HashMap[bytes32, int8]
+# game_start_time: uint256
+oracle_contract: DieOracle
+
 @external
-def __init__(): 
+def __init__(oracle_ad: address): 
+    # self.game_start_time = block.timestamp
+    self.oracle_contract = DieOracle(oracle_ad)
     self.reset_game()
+
 
 @internal
 def reset_game():
@@ -37,9 +53,12 @@ def reset_game():
     self.rollsLeft = 3
     for i in range(5):
         self.dice[i] = 1
+        self.selected[i] = True
     
 @external
 def join_game():
+    # if block.timestamp > self.game_start_time + 7200: 
+    #     self.reset_game()
     if self.players[0] == msg.sender or self.players[1] == msg.sender:
         raise "You are already in the game"
     if self.players[0] == empty(address):
@@ -49,44 +68,36 @@ def join_game():
         log ScoreState(self.players, self.player_scores)
     elif self.players[1] == empty(address):
         self.players[1] = msg.sender
-        self.next_player = self.generate_rand_number() % 2 # do this after joining so players can't see who goes first before joining
+        seed: bytes32 = convert(block.timestamp, bytes32)
+        self.next_player = convert(convert(sha256(seed), uint256) % 2, uint8) # do this after joining so players can't see who goes first before joining
         log Turn(self.players[self.next_player])
         log DiceState(self.dice, self.rollsLeft)
         log ScoreState(self.players, self.player_scores)
     else:
         raise "Game currently in progress, can't join right now"
 
+
 @external
-def roll_dice(one: bool, two: bool, three: bool, four: bool, five: bool):
-    if self.has_winner():
-        raise "the game is over"
+def toggle_select_die(ind: uint8):
+    if msg.sender != self.players[self.next_player]:
+        raise "not your turn"
+    self.selected[ind] = not self.selected[ind]
+    log Selected(self.selected)
+
+@external
+def roll_dice():
     if msg.sender != self.players[self.next_player]:
         raise "not your turn"
     if self.rollsLeft == 0:
         raise "out of rolls"
-    if not one and not two and not three and not four and not five:
+    if not self.selected[0] and not self.selected[1] and not self.selected[2] and not self.selected[3] and not self.selected[4]:
         raise "you didn't select any dice to roll"
-    if self.rollsLeft == 3 and (not one or not two or not three or not four or not five):
+    if self.rollsLeft == 3 and (not self.selected[0] and not self.selected[1] and not self.selected[2] and not self.selected[3] and not self.selected[4]):
         raise "you have to roll all five dice to start your turn"
-    
-    if one: 
-        self.dice[0] = self.generate_rand_number()
-    if two: 
-        self.dice[1] = self.generate_rand_number()
-    if three: 
-        self.dice[2] = self.generate_rand_number()
-    if four: 
-        self.dice[3] = self.generate_rand_number()
-    if five: 
-        self.dice[3] = self.generate_rand_number()
-    
-    self.rollsLeft -= 1
-    log DiceState(self.dice, self.rollsLeft)
+    self.generate_dice_roll()
 
 @external
 def bank_roll(category: uint32):
-    if self.has_winner():
-        raise "the game is over"
     if msg.sender != self.players[self.next_player]:
         raise "not your turn"
     if self.rollsLeft == 3:
@@ -96,10 +107,8 @@ def bank_roll(category: uint32):
         player = 0
     else: 
         player = 1
-    
     if category > 13 or category == 6:
         raise "not a valid category"
-
     if self.player_scores[category][player] > -1: 
         raise "you already banked that category"
     val: int8 = 0
@@ -145,6 +154,10 @@ def bank_roll(category: uint32):
     self.check_bonus()
     self.check_total()
     self.rollsLeft = 3
+    for i in range(5):
+        self.selected[i] = True
+        self.dice[i] = 1
+    
     self.next_player = (self.next_player + 1) % 2
 
     if self.has_winner():
@@ -160,6 +173,7 @@ def bank_roll(category: uint32):
         log DiceState(self.dice, self.rollsLeft)
         log Turn(self.players[self.next_player])
         log ScoreState(self.players, self.player_scores)
+        log Selected(self.selected)
 
 @internal
 def check_bonus():
@@ -172,7 +186,10 @@ def check_bonus():
             complete = False
             break
     if complete:
-        self.player_scores[6][self.next_player] = sum
+        if sum >= 63:
+            self.player_scores[6][self.next_player] = 35
+        else:
+            self.player_scores[6][self.next_player] = 0
 
 @internal
 def check_total():
@@ -220,39 +237,51 @@ def top_numbers(num: int8) -> int8:
     return sum
 
 @internal
-def check_x_of_a_kind(x: int8) -> int8:
-    map: int8[6] = empty(int8[6])
+def check_x_of_a_kind(x: uint8) -> int8:
+    map: uint8[6] = empty(uint8[6])
     have_x: bool = False
-    sum: int8 = 0
+    sum: uint8 = 0
     for d in self.dice:
-        sum += convert(d, int8)
+        sum += d
         map[d] += 1
         if map[d] >= x:
             have_x = True
     if have_x: 
-        return sum
+        return convert(sum, int8)
     return 0
 
 @internal
 def check_full_house() -> bool:
     a: int8 = -1
     b: int8 = -1
-    num_a: uint8 = 0
-    num_b: uint8 = 0
     for d in self.dice:
         di: int8 = convert(d, int8)
         if a == -1:
             a = di
-            num_a += 1
         elif b == -1:
             b = di
-            num_b += 1
         elif di != a and di != b:
             return False
     return True
 
 @internal
 def check_sm_straight() -> bool:
+    if 1 in self.dice:
+        for i in range(2,5):
+            if i not in self.dice:
+                return False
+    elif 6 in self.dice:
+        for i in range(3,6):
+            if i not in self.dice:
+                return False
+    else:
+        for i in range(2, 6):
+            if i not in self.dice:
+                return False
+    return True
+
+@internal
+def check_lg_straight() -> bool:
     if 1 in self.dice:
         for i in range(2,6):
             if i not in self.dice:
@@ -266,18 +295,28 @@ def check_sm_straight() -> bool:
     return True
 
 @internal
-def check_lg_straight() -> bool:
-    for i in range(1,7):
-        if i not in self.dice: 
-            return False
-    return True
-
-@internal
 def check_yahtzee() -> bool:
     return self.dice[0]==self.dice[1] and self.dice[0]==self.dice[2] and self.dice[0]==self.dice[3] and self.dice[0]==self.dice[4]
 
-##### THIS IS TEMPORARY #####
+## COMMUNICATE WITH ORACLE FOR DICE ROLLS
 @internal
-def generate_rand_number() -> uint8:
-    return 3 % 6 + 1
+def generate_dice_roll():
+    newd: int8[5] = [-1, -1, -1, -1, -1]
+    if not self.selected[0]:
+        newd[0] = convert(self.dice[0], int8)
+    if not self.selected[1]:
+        newd[1] = convert(self.dice[1], int8)
+    if not self.selected[2]:
+        newd[2] = convert(self.dice[2], int8)
+    if not self.selected[3]:
+        newd[3] = convert(self.dice[3], int8)
+    if not self.selected[4]:
+        newd[4] = convert(self.dice[4], int8)
+    self.oracle_contract.gen_dice_roll(newd[0], newd[1], newd[2], newd[3], newd[4])
+
+@external
+def recieve_dice_roll(one: int8, two: int8, three:int8, four: int8, five: int8):
+    self.dice = [convert(one, uint8), convert(two, uint8), convert(three, uint8), convert(four, uint8), convert(five, uint8)]
+    self.rollsLeft -= 1
+    log DiceState(self.dice, self.rollsLeft)
 
