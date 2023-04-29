@@ -178,19 +178,16 @@ def check_bonus():
 
 @internal
 def check_total():
-    complete: bool = True
     sum: int8 = 0
     for i in range(14):
         if self.player_scores[i][self.next_player] >= 0:
             sum += self.player_scores[i][self.next_player]
         else:
-            complete = False
-            break
-    if complete:
-        self.player_scores[14][self.next_player] = sum
+            return
+    self.player_scores[14][self.next_player] = sum
 
 @external
-# @view
+@view
 def turn_dump():
     if self.next_player == 2: # the game hasn't started yet
         log Turn(empty(address))
@@ -198,12 +195,12 @@ def turn_dump():
         log Turn(self.players[self.next_player])
 
 @external
-# @view
+@view
 def dice_dump():
     log DiceState(self.dice, self.rollsLeft)
 
 @external
-# @view
+@view
 def score_dump():
     log ScoreState(self.players, self.player_scores)
 
