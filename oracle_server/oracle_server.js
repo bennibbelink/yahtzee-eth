@@ -2,8 +2,8 @@
 import Web3 from 'web3'
 import fs from 'fs';
 
-const ACCOUNT = "0xE9Bc1552547E8F03c39f526209677E2147fb6ccF"
-const KEY = "0x5b2088fd456c3387e5237d741c6c428d910fa871a444a10f46ea0fb4768ad08b"
+const ACCOUNT = "0xc55928190f05f8c3bfE48b0BbcaBcc13B47888b4"
+const KEY = "0x427517075acbbf1a582df676fb6e04155f30d5c5473d08fe03fd73648d5f3bf5"
 
 const ethereum = new Web3('ws://127.0.0.1:8545').eth;
 const chainId = await ethereum.getChainId();

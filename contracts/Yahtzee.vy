@@ -112,8 +112,7 @@ def bank_roll(category: uint32):
         val = self.top_numbers(5)
     elif category == 5: # sixes
         val = self.top_numbers(6)
-    # elif category == 6: # bonus
-    #     raise 'can\'t bank the bonus, have to earn it'
+
     elif category == 7: # 3 of a kind
         val = self.check_x_of_a_kind(3)
     elif category == 8: # 4 of a kind
@@ -133,10 +132,6 @@ def bank_roll(category: uint32):
     elif category == 13: # chance
         for d in self.dice:
             val += convert(d, int8)
-    # elif category == 14: # total
-    #     raise 'can\'t bank the total, it is the sum of your categories'
-    # else:
-    #     raise "not a valid category"
 
     self.player_scores[category][player] = val
     self.check_bonus()
@@ -148,9 +143,9 @@ def bank_roll(category: uint32):
     
     self.next_player = (self.next_player + 1) % 2
 
-    if self.has_winner():
-        winner: uint8 = 0
-        loser: uint8 = 1
+    if self.player_scores[14][0] >= 0 and self.player_scores[14][1] >= 0: # the game is over now
+        winner: uint256 = 0
+        loser: uint256 = 1
         if self.player_scores[14][1] > self.player_scores[14][0]:
             winner = 1
             loser = 0
@@ -193,12 +188,6 @@ def check_total():
             break
     if complete:
         self.player_scores[14][self.next_player] = sum
-
-@internal
-def has_winner() -> bool:
-    # the total score will be set when all other categories are full
-    # if both self.players have a total score then the game is over
-    return self.player_scores[14][0] >= 0 and self.player_scores[14][1] >= 0
 
 @external
 # @view
