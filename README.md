@@ -2,7 +2,8 @@
 
 A smart contract for the popular dice game Yahtzee.
 
-## How to deploy to a local Hardhat blockchain
+## How to deploy to a local Hardhat blockchain 
+**Note: the UI is made to work with Ganache, there may be some small changes to make on the front-end if you use Hardhat**
 1. Start a local Hardhat blockchain network (`npx hardhat node`) You will need the generated addresses for your oracle server, and to play the game.
 2. `npm i`
 3. `npx hardhat run ./scripts/deploy.js --network localhost`. If your RPC server URL is not `http://127.0.0.1:8545` then you should use your network instead of localhost.
