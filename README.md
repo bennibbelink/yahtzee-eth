@@ -12,7 +12,7 @@ correcly there should be output indicating that it has connected.
 5. Now your contracts should be deployed on your network and the "trusted" oracle server should be running.
 
 If you wish to deploy on a non-local network then update your `truffle-config.js` and skip step 1.  I have not tested deploying
-to a testnet such as Goerli or Sepolia.
+to a testnet such as Goerli or Sepolia however I played around with different block times in Ganache, and having non-instantaneous blocks significantly affects the user experience as you must wait for transactions to be confirmed before performing another action.  Thus, it is recommended that you use a local network with instant transaction confirmations.
 
 ## Yahtzee.vy
 This is the smart contract that governs the game.  It maintains the game state as public storage variables, 
