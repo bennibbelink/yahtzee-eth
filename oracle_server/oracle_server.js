@@ -4,8 +4,8 @@ import fs from 'fs';
 // import hre from 'hardhat';
 // import "@nomiclabs/hardhat-ethers";
 
-const ACCOUNT = "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199"
-const KEY = "0xdf57089febbacf7ba0bc227dafbffa9fc08a93fdc68e1e42411a14efcf23656e"
+const ACCOUNT = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+const KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 
 
 const web3 = new Web3('ws://127.0.0.1:8545');
@@ -56,7 +56,7 @@ async function sendDiceToOracle(yahtAddr, dice) {
 }
 
 contract.events.GenerateDie({}).on('data', (ev) => {
-    console.log(ev);
+    // console.log(ev);
     eventHandler(ev);
 }).on('connected', () => {
     console.log('connected');
