@@ -21,9 +21,6 @@ event Turn:
 event Selected:
     selected: bool[5]
 
-event DefaultEvent:
-    message: String[100]
-
 players: public(address[2])
 next_player: public(uint8)
 rollsLeft: public(uint8)
@@ -330,7 +327,3 @@ def recieve_dice_roll(one: int8, two: int8, three:int8, four: int8, five: int8):
     self.rollsLeft -= 1
     log DiceState(self.dice, self.rollsLeft)
 
-@external
-@payable
-def __default__():
-    log DefaultEvent("default function was called")
