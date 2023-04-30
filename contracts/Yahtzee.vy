@@ -1,14 +1,11 @@
 # A simple implementation of Yahtzee in Vyper 
-
-interface DieOracle:
-    def gen_dice_roll(one: int8, two: int8, three: int8, four: int8, five: int8): nonpayable
-    def rec_dice_roll(sender_addr: address, one: int8, two: int8, three: int8, four: int8, five: int8): nonpayable
+import DieOracle as Oracle
 
 event GameOver:
     winner: address
     loser: address
-    winning_score: int8
-    losing_score: int8
+    winning_score: int256
+    losing_score: int256
 
 event DiceState:
     dice: uint8[5]
@@ -16,7 +13,7 @@ event DiceState:
 
 event ScoreState:
     players: address[2]
-    player_scores: int8[2][15]
+    player_scores: int256[2][15]
 
 event Turn:
     turn: address
@@ -32,15 +29,15 @@ next_player: public(uint8)
 rollsLeft: public(uint8)
 dice: public(uint8[5])
 selected: public(bool[5])
-player_scores: public(int8[2][15])
+player_scores: public(int256[2][15])
 
-game_start_time: uint256
-oracle_contract: DieOracle
+game_start_time: public(uint256)
+oracle_contract: Oracle
 
 @external
 @nonpayable
 def __init__(oracle_ad: address): 
-    self.oracle_contract = DieOracle(oracle_ad)
+    self.oracle_contract = Oracle(oracle_ad)
     self.reset_game()
 
 @internal
@@ -111,7 +108,7 @@ def bank_roll(category: uint32):
     else: 
         player = 1
     assert self.player_scores[category][player] == -1, "You already banked that category"
-    val: int8 = 0
+    val: int256 = 0
     if category == 0: # ones
         val = self.top_numbers(1) 
     elif category == 1: # twos
@@ -143,10 +140,11 @@ def bank_roll(category: uint32):
             val = 50
     elif category == 13: # chance
         for d in self.dice:
-            val += convert(d, int8)
+            val += convert(d, int256)
 
     # update the players score
     self.player_scores[category][player] = val
+    self.check_bonus()
     self.check_total()
 
     # reset the turn for the next player
@@ -173,32 +171,31 @@ def bank_roll(category: uint32):
 
 @internal
 def check_bonus():
-    if self.player_scores[6][self.next_player] >= 0:
+    if self.player_scores[6][self.next_player] >= 0: # already computed bonus
         return
-    sum: int8 = 0
+    bonus_sum: int256 = 0
     for i in range(6):
         if self.player_scores[i][self.next_player] >= 0:
-            sum += self.player_scores[i][self.next_player]
+            bonus_sum += self.player_scores[i][self.next_player]
         else:
             return
-    if sum >= 63:
+    if bonus_sum >= 63:
         self.player_scores[6][self.next_player] = 35
     else:
         self.player_scores[6][self.next_player] = 0
 
 @internal
 def check_total():
-    self.check_bonus()
-    if self.player_scores[6][self.next_player] == -1: # don't even have top portion done
+    if self.player_scores[6][self.next_player] == -1: # don't have top section done
         return
-    sum: int8 = 0
+    total_sum: int256 = 0
     for i in range(14):
-        v: int8 = self.player_scores[i][self.next_player]
+        v: int256 = self.player_scores[i][self.next_player]
         if v >= 0:
-            sum += v
+            total_sum += v
         else:
             return
-    self.player_scores[14][self.next_player] = sum
+    self.player_scores[14][self.next_player] = total_sum
 
 @external
 @view
@@ -219,58 +216,75 @@ def score_dump():
     log ScoreState(self.players, self.player_scores)
 
 @internal
-def top_numbers(num: uint8) -> int8:
-    sum: uint8 = 0
+@view
+def top_numbers(num: uint8) -> int256:
+    top_sum: uint8 = 0
     for d in self.dice:
         if d == num: 
-            sum += d
-    return convert(sum, int8)
+            top_sum += d
+    return convert(top_sum, int256)
 
 @internal
-def check_x_of_a_kind(x: uint8) -> int8:
-    map: uint8[6] = empty(uint8[6])
-    sum: uint256 = 0
+@view
+def check_x_of_a_kind(x: uint8) -> int256:
+    x_map: uint8[6] = empty(uint8[6])
+    x_sum: uint256 = 0
     for d in self.dice:
         di: uint256 = convert(d, uint256)
-        map[di - 1] += 1
-        sum = sum + di
+        x_map[di - 1] += 1
+        x_sum = x_sum + di
     for i in range(6):
-        if map[i] >= x:
-            return convert(sum, int8)
+        if x_map[i] >= x:
+            return convert(x_sum, int256)
     return 0
 
 @internal
+@view
 def check_full_house() -> bool:
-    map: uint8[6] = empty(uint8[6])
+    full_map: uint8[6] = empty(uint8[6])
     for d in self.dice:
         di: uint256 = convert(d, uint256)
-        map[di - 1] += 1
+        full_map[di - 1] += 1
     a: bool = False # higher value
     b: bool = False # lower value
     for i in range(6):
-        if map[i] >= 3:
+        if full_map[i] >= 3:
             a = True
-        elif map[i] >= 2:
+        elif full_map[i] >= 2:
             b = True
     return a and b
         
 @internal
+@view
 def check_sm_straight() -> bool:
+    has_straight: bool = True
     if 1 in self.dice: # 1 through 4
         for i in range(2,5):
             if i not in self.dice:
-                return False
-    elif 6 in self.dice: # 3 through 6
+                has_straight = False
+                break
+        if has_straight:
+            return True
+    has_straight = True
+    if 6 in self.dice: # 3 through 6
         for i in range(3,6):
             if i not in self.dice:
-                return False
-    else: # 2 through 5
+                has_straight = False
+                break
+        if has_straight:
+            return True
+    has_straight = True
+    if 1 not in self.dice and 6 not in self.dice: # 2 through 5
         for i in range(2, 6):
             if i not in self.dice:
-                return False
-    return True
+                has_straight = False
+                break
+        if has_straight:
+            return True
+    return False
 
 @internal
+@view
 def check_lg_straight() -> bool:
     if 1 in self.dice:
         for i in range(1,6):
@@ -285,6 +299,7 @@ def check_lg_straight() -> bool:
     return True
 
 @internal
+@view
 def check_yahtzee() -> bool:
     for i in range(4):
         if self.dice[i] != self.dice[4]:
@@ -319,4 +334,3 @@ def recieve_dice_roll(one: int8, two: int8, three:int8, four: int8, five: int8):
 @payable
 def __default__():
     log DefaultEvent("default function was called")
-

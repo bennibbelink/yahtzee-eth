@@ -8,7 +8,7 @@ const KEY = "0x427517075acbbf1a582df676fb6e04155f30d5c5473d08fe03fd73648d5f3bf5"
 const ethereum = new Web3('ws://127.0.0.1:8545').eth;
 const chainId = await ethereum.getChainId();
 
-let rawdata = fs.readFileSync('../build/contracts/DieOracle.json');
+let rawdata = fs.readFileSync('./build/contracts/DieOracle.json');
 let contract = JSON.parse(rawdata);
 const networkData = contract["networks"][chainId.toString()];
 const instance = new ethereum.Contract(contract.abi, networkData["address"]);
@@ -43,9 +43,11 @@ async function sendDiceToOracle(yahtAddr, dice) {
         KEY,
         false,
     );
-    await ethereum.sendSignedTransaction(signedTx.rawTransaction);
+    ethereum.sendSignedTransaction(signedTx.rawTransaction)
+        .catch(err => {
+            console.log(err);
+        });
 }
-
 
 let options = {};
 instance.events.GenerateDie(options).on('data', (ev) => eventHandler(ev));
