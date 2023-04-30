@@ -2,8 +2,8 @@
 
 A smart contract for the popular dice game Yahtzee.
 
-## How to deploy to a local blockchain
-1. Start a local blockchain network (has been tested on Ganache and Hardhat)
+## How to deploy to a local Ganache blockchain
+1. Start a local blockchain network (if you wish to use Hardhat checkout branch `hardhat`).  You will need the generated addresses for your oracle server, and to play the game.
 2. `npm i`
 3. `truffle deploy --reset --network development`. If your RPC server URL is not `http://127.0.0.1:8545` then you will need to update `truffle-config.js`.
 4. `PROVIDER="{RPC server URL}" ORACLE_ACCOUNT="{address here}" ORACLE_KEY="{private key here}" node oracle_server.js`. Make sure
