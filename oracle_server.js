@@ -2,10 +2,11 @@
 import Web3 from 'web3'
 import fs from 'fs';
 
-const ACCOUNT = "0xc55928190f05f8c3bfE48b0BbcaBcc13B47888b4"
-const KEY = "0x427517075acbbf1a582df676fb6e04155f30d5c5473d08fe03fd73648d5f3bf5"
+const ACCOUNT = process.env.ORACLE_ACCOUNT
+const KEY = process.env.ORACLE_KEY
+const PROVIDER = process.env.PROVIDER
 
-const ethereum = new Web3('ws://127.0.0.1:8545').eth;
+const ethereum = new Web3(PROVIDER).eth;
 const chainId = await ethereum.getChainId();
 
 let rawdata = fs.readFileSync('./build/contracts/DieOracle.json');
