@@ -1,8 +1,5 @@
 # A simple implementation of Yahtzee in Vyper 
 import DieOracle as Oracle
-# interface DieOracle:
-#     def gen_dice_roll(one: int8, two: int8, three: int8, four: int8, five: int8): nonpayable
-#     def rec_dice_roll(sender_addr: address, one: int8, two: int8, three: int8, four: int8, five: int8): nonpayable
 
 event GameOver:
     winner: address
