@@ -21,12 +21,12 @@ event Turn:
 event Selected:
     selected: bool[5]
 
-players: public(address[2])
-next_player: public(uint8)
-rollsLeft: public(uint8)
-dice: public(uint8[5])
-selected: public(bool[5])
-player_scores: public(int256[2][15])
+players: address[2]
+next_player: uint8
+rollsLeft: uint8
+dice: uint8[5]
+selected: bool[5]
+player_scores: int256[2][15]
 
 game_start_time: public(uint256)
 oracle_contract: Oracle
