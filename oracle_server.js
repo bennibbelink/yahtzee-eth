@@ -1,18 +1,12 @@
 #!/usr/bin/env node
-import Web3 from 'web3'
-import fs from 'fs';
+const Web3 = require('web3');
+const fs = require('fs');
 
 const ACCOUNT = process.env.ORACLE_ACCOUNT
 const KEY = process.env.ORACLE_KEY
-const PROVIDER = process.env.PROVIDER
+const PROVIDER = process.env.PROVIDER ? process.env.PROVIDER : 'ws://127.0.0.1:8545'
 
-const ethereum = new Web3(PROVIDER).eth;
-const chainId = await ethereum.getChainId();
 
-let rawdata = fs.readFileSync('./build/contracts/DieOracle.json');
-let contract = JSON.parse(rawdata);
-const networkData = contract["networks"][chainId.toString()];
-const instance = new ethereum.Contract(contract.abi, networkData["address"]);
 function getRandomRoll() {
     return Math.floor(Math.random() * 6) + 1;
 }
@@ -50,6 +44,20 @@ async function sendDiceToOracle(yahtAddr, dice) {
         });
 }
 
-let options = {};
-instance.events.GenerateDie(options).on('data', (ev) => eventHandler(ev));
-instance.events.GenerateDie(options).on('connected', (ev) => console.log("connected"));
+let ethereum = null;
+let instance = null;
+async function main() {
+    ethereum = new Web3(PROVIDER).eth;
+    const chainId = await ethereum.getChainId();
+
+    let rawdata = fs.readFileSync('./build/contracts/DieOracle.json');
+    let contract = JSON.parse(rawdata);
+    const networkData = contract["networks"][chainId.toString()];
+    instance = new ethereum.Contract(contract.abi, networkData["address"]);
+    let options = {};
+    instance.events.GenerateDie(options).on('data', (ev) => eventHandler(ev));
+    instance.events.GenerateDie(options).on('connected', (ev) => console.log("connected"));
+}
+
+
+main()
