@@ -1,5 +1,4 @@
 # A simple implementation of Yahtzee in Vyper 
-import DieOracle as Oracle
 
 event GameOver:
     winner: address
@@ -29,12 +28,10 @@ selected: bool[5]
 player_scores: int256[2][15]
 
 game_start_time: public(uint256)
-oracle_contract: Oracle
 
 @external
 @nonpayable
-def __init__(oracle_ad: address): 
-    self.oracle_contract = Oracle(oracle_ad)
+def __init__():
     self.reset_game()
 
 @internal
@@ -307,23 +304,21 @@ def check_yahtzee() -> bool:
 ## COMMUNICATE WITH ORACLE FOR DICE ROLLS
 @internal
 def generate_dice_roll():
-    newd: int8[5] = [-1, -1, -1, -1, -1]
-    if not self.selected[0]:
-        newd[0] = convert(self.dice[0], int8)
-    if not self.selected[1]:
-        newd[1] = convert(self.dice[1], int8)
-    if not self.selected[2]:
-        newd[2] = convert(self.dice[2], int8)
-    if not self.selected[3]:
-        newd[3] = convert(self.dice[3], int8)
-    if not self.selected[4]:
-        newd[4] = convert(self.dice[4], int8)
-    self.oracle_contract.gen_dice_roll(newd[0], newd[1], newd[2], newd[3], newd[4])
+    if self.selected[0]:
+        self.dice[0] = self.generate_roll(0)
+    if self.selected[1]:
+        self.dice[1] = self.generate_roll(1)
+    if self.selected[2]:
+        self.dice[2] = self.generate_roll(2)
+    if self.selected[3]:
+        self.dice[3] = self.generate_roll(3)
+    if self.selected[4]:
+        self.dice[4] = self.generate_roll(4)
 
-@external
-@nonpayable
-def recieve_dice_roll(one: int8, two: int8, three:int8, four: int8, five: int8):
-    self.dice = [convert(one, uint8), convert(two, uint8), convert(three, uint8), convert(four, uint8), convert(five, uint8)]
-    self.rollsLeft -= 1
-    log DiceState(self.dice, self.rollsLeft)
-
+@internal
+def generate_roll(seed: int256) -> uint8:
+    x: int256 = convert(block.timestamp, int256)
+    y: int256 = x + seed
+    hash: bytes32 = sha256(convert(y, bytes32))
+    u8: uint256 = convert(hash, uint256) % 6 + 1
+    return convert(u8, uint8)
