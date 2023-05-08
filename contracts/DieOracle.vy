@@ -14,6 +14,6 @@ def gen_dice_roll(one: int8, two: int8, three: int8, four: int8, five: int8):
 
 @external
 def rec_dice_roll(sender_addr: address, one: int8, two: int8, three: int8, four: int8, five: int8):
-    Contract(sender_addr).recieve_dice_roll(one, two, three, four, five)
+    Contract(sender_addr).receive_dice_roll(one, two, three, four, five)
 
 

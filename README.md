@@ -29,7 +29,7 @@ interface Yahtzee:
     def turn_dump(): view
     def dice_dump(): view
     def score_dump(): view
-    def recieve_dice_roll(one: int8, two: int8, three: int8, four: int8, five: int8): nonpayable
+    def receive_dice_roll(one: int8, two: int8, three: int8, four: int8, five: int8): nonpayable
     def game_start_time() -> uint256: view
 ```
 

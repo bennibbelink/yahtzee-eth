@@ -322,7 +322,7 @@ def generate_dice_roll():
 
 @external
 @nonpayable
-def recieve_dice_roll(one: int8, two: int8, three:int8, four: int8, five: int8):
+def receive_dice_roll(one: int8, two: int8, three:int8, four: int8, five: int8):
     self.dice = [convert(one, uint8), convert(two, uint8), convert(three, uint8), convert(four, uint8), convert(five, uint8)]
     self.rollsLeft -= 1
     log DiceState(self.dice, self.rollsLeft)
