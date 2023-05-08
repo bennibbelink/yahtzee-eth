@@ -53,13 +53,13 @@ def reset_game():
 @external
 @nonpayable
 def join_game():
-    assert self.players[0] != msg.sender and self.players[1] != msg.sender, "You are already in the game"
     if block.timestamp > self.game_start_time + 7200: 
         i: uint256 = (convert(self.next_player, uint256) + 1) % 2
         winner: address = self.players[i]
         loser: address = self.players[self.next_player] # whoever took too long to play is the automatic loser
         log GameOver(winner, loser, 1, 0) # these scores indicate that the game didn't finish, since a score of 1 or 0 is impossible in a finished game
         self.reset_game()
+    assert self.players[0] != msg.sender and self.players[1] != msg.sender, "You are already in the game"
     if self.players[0] == empty(address):
         self.players[0] = msg.sender
         log Turn(empty(address))
