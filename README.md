@@ -46,7 +46,7 @@ potentially be used by multiple smart contracts that need random dice.
 Currently there is no authentication mechanism in place to ensure that calls to rec_dice_roll() are from the trusted server,
 so anybody (untrusted) could make a call to the oracle contract and manipulate the game contract (assuming that they pass 
 the Yahtzee contract address as sender_arr).  To mitigate this a simple check in rec_dice_roll() can be made 
-(e.g. `assert(msg.sender == "trusted address"`) to ensure that the call is coming from our trusted server, however since the 
+(e.g. `assert(msg.sender == "trusted address")`) to ensure that the call is coming from our trusted server, however since the 
 trusted server address is continually changing in development this check was left out for simplicity.  **This check should be 
 in place before deploying to a public chain.**
 
